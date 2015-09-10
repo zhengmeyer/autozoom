@@ -23,41 +23,38 @@ import vex
 def get_freqsetup(freq):
   f = {}
   numchans = 0
-  f['sample_rate'] = freq['sample_rate']
+  f['sample_rate'] = float(freq['sample_rate'].split(' ')[0])
   f['side_band'] = freq['chan_def'][2]
   f['bandwidth'] = float(freq['chan_def'][3].split(' ')[0])
-  f['band_freqs'] = []
+  band_freqs = []
   for ch in freq.getall('chan_def'):
     numchans += 1
-    f['band_freqs'].append(float(ch[1].split(' ')[0]))
+    band_freqs.append(float(ch[1].split(' ')[0]))
+  
   f['num_channels'] = numchans
+  f['f_coverage'] = f['bandwidth'] * numchans
+
   if f['side_band'] == 'L':
-    f['min_freq'] = f['band_freqs'][numchans-1] - f['bandwidth']
-    f['max_freq'] = f['band_freqs'][0]
+    f['min_freq'] = band_freqs[numchans-1] - f['bandwidth']
+    f['max_freq'] = band_freqs[0]
   if f['side_band'] == 'R':
-    f['min_freq'] = f['band_freqs'][0]
-    f['max_freq'] = f['band_freqs'][numchans-1] + f['bandwidth']
+    f['min_freq'] = band_freqs[0]
+    f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
+
   return f
 
 # calculate the zoom frequencies of the given mode
 def cal_zoomfreqs(v, md):
-  f = {}
-  zf = {}
-  # get frequency information from each frequency setup
-  for freq in md.getall('FREQ'):
-    f[freq[0]] = get_freqsetup(v['FREQ'][freq[0]])
-  # calculate zoom frequencies
-  zf = f
-  return zf
+  freqs = {}
+  zfreqs = {}
+  
+  for f in v['MODE'][md].getall('FREQ'):
+    # get frequency information from each frequency setup
+    freqs[f[0]] = get_freqsetup(v['FREQ'][f[0]])
 
-def st_zoomfreqs(v, md, st):
-  z = {}
-  mode = v['MODE'][md]
-  zoom = cal_zoomfreqs(v, mode)
-  for freq in mode.getall('FREQ'):
-    if st in freq:
-      z = zoom[freq[0]]
-  return z
+  # calculate zoom frequencies
+  zfreqs = freqs
+  return zfreqs
 
 def Autozoom(file):
   zoomfreqs = {}
@@ -67,9 +64,12 @@ def Autozoom(file):
   # calculate zoom frequencies for each station within each mode
   for md in v['MODE']:
     zoomfreqs[md] = {}
-    for st in v['STATION']:
-      zoomfreqs[md][st] = st_zoomfreqs(v, md, st)
-    print(zoomfreqs)
+    zoom = cal_zoomfreqs(v, md)
+    for freq in v['MODE'][md].getall('FREQ'):
+      for st in v['STATION']:
+        if st in freq:
+          zoomfreqs[md][st] = zoom[freq[0]]
+
     # insert station zoomfreqs into .v2d file
   return
 
