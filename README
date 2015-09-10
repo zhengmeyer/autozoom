@@ -1,0 +1,10 @@
+Introduction
+==============
+
+The autozoom program is written in Python. It reads the VEX file, calculate the optimal ZoomFreqs among all stations, and write the calculated ZoomFreqs to the v2d file.
+
+Requirements
+==============
+
+This program uses the VEX parser within the SFXC software developed at JIVE (http://www.jive.nl/jivewiki/doku.php?id=sfxc). Since the VEX parser doesn't support Python 3 yet, please use Python 2.x.
+
