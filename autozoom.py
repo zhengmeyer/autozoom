@@ -25,40 +25,52 @@ def get_freqsetup(freq):
   numchans = 0
   f['sample_rate'] = freq['sample_rate']
   f['side_band'] = freq['chan_def'][2]
-  f['bandwidth'] = freq['chan_def'][3]
+  f['bandwidth'] = float(freq['chan_def'][3].split(' ')[0])
   f['band_freqs'] = []
   for ch in freq.getall('chan_def'):
     numchans += 1
-    f['band_freqs'].append(ch[1])
+    f['band_freqs'].append(float(ch[1].split(' ')[0]))
   f['num_channels'] = numchans
+  if f['side_band'] == 'L':
+    f['min_freq'] = f['band_freqs'][numchans-1] - f['bandwidth']
+    f['max_freq'] = f['band_freqs'][0]
+  if f['side_band'] == 'R':
+    f['min_freq'] = f['band_freqs'][0]
+    f['max_freq'] = f['band_freqs'][numchans-1] + f['bandwidth']
   return f
 
-# Dictionary antenna channels structure
-# {STATION: {MODE: frequency_setup } }
-# see get_freqsetup for Keys in frequency_setup
-def get_antchannels(v):
-  d = {}
-  # loop through MODE, retrieve antenna FREQ setup
-  for st in v['STATION']:
-    d[st] = {}
-    for md in v['MODE']:
-      d[st][md] = {}
-      for freq in v['MODE'][md].getall('FREQ'):
-        if st in freq:
-          d[st][md] = get_freqsetup(v['FREQ'][freq[0]])
-  return d;
+# calculate the zoom frequencies of the given mode
+def cal_zoomfreqs(v, md):
+  f = {}
+  zf = {}
+  # get frequency information from each frequency setup
+  for freq in md.getall('FREQ'):
+    f[freq[0]] = get_freqsetup(v['FREQ'][freq[0]])
+  # calculate zoom frequencies
+  zf = f
+  return zf
 
-
-def calc_zoomfreqs(v):
-  antchannels = get_antchannels(v);
-  print(antchannels)
-  return
+def st_zoomfreqs(v, md, st):
+  z = {}
+  mode = v['MODE'][md]
+  zoom = cal_zoomfreqs(v, mode)
+  for freq in mode.getall('FREQ'):
+    if st in freq:
+      z = zoom[freq[0]]
+  return z
 
 def Autozoom(file):
+  zoomfreqs = {}
   fp = open(file, 'r')
   v = vex.parse(fp.read())
   fp.close()
-  calc_zoomfreqs(v)
+  # calculate zoom frequencies for each station within each mode
+  for md in v['MODE']:
+    zoomfreqs[md] = {}
+    for st in v['STATION']:
+      zoomfreqs[md][st] = st_zoomfreqs(v, md, st)
+    print(zoomfreqs)
+    # insert station zoomfreqs into .v2d file
   return
 
 if __name__=="__main__":
