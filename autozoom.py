@@ -104,10 +104,13 @@ def cal_zoomfreqs(v, md):
     # get frequency information from each frequency setup
     freqs[f[0]] = get_freqsetup(v['FREQ'][f[0]])
 
+  # !!!!!!!!!!!!!!!!!
   # check whether all frequency setup has the same min_freq and max_freq
   # check whether all bandwidth are 2^N
 
   # calculate zoom frequencies
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # always select one at the moment
   zfreqs = zoom_options[1](freqs)
   return zfreqs
 
