@@ -38,7 +38,7 @@ def get_freqsetup(freq):
   if f['side_band'] == 'L':
     if len(band_freqs) > 1:
       # sometimes the first band only consists of half bandwidth
-    # therefore, use the second and the third band for band_overlap calculation
+      # therefore, use the second and the third band for band_overlap calculation
       f['band_overlap'] =  f['bandwidth'] - (band_freqs[1] - band_freqs[2])
     f['min_freq'] = band_freqs[numchans-1] - f['bandwidth'] + f['band_overlap']
     f['max_freq'] = band_freqs[0]
@@ -55,6 +55,34 @@ def get_freqsetup(freq):
   
   return f
 
+
+# Case 1:
+# ALL stations have the same frequency coverage 2048 MHz.
+# Bandwidth is 2^N, with a minimum bandwidth of 64 MHz.
+def allvlbi(freqs):
+  z = {}
+  minbw = 2048;
+
+  # get the smallest bandwidth of all frequency setup
+  # use it as reference for zoom frequency
+  for f in freqs.keys():
+    if minbw > int(freqs[f]['bandwidth']):
+      minbw = int(freqs[f]['bandwidth'])
+  
+  for f in freqs.keys():
+    num_zf = int(freqs[f]['bandwidth']) / minbw
+    
+    z[f] = freqs[f]
+  return z
+
+# Case 2
+def almavlbi():
+  return
+
+
+zoom_options = {1 : allvlbi,
+                2 : almavlbi}
+
 # calculate the zoom frequencies of the given mode
 def cal_zoomfreqs(v, md):
   freqs = {}
@@ -63,9 +91,14 @@ def cal_zoomfreqs(v, md):
   for f in v['MODE'][md].getall('FREQ'):
     # get frequency information from each frequency setup
     freqs[f[0]] = get_freqsetup(v['FREQ'][f[0]])
-  print(freqs)
+
+  # check whether all frequency setup has the same min_freq and max_freq
+  # check whether all bandwidth are 2^N
+
+
   # calculate zoom frequencies
-  zfreqs = freqs
+  zfreqs = zoom_options[1](freqs)
+  print(zfreqs)
   return zfreqs
 
 def Autozoom(file, scan):
