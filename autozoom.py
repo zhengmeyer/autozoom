@@ -142,10 +142,10 @@ def Autozoom(vexfile, scan, v2dfile):
       token = True;
       st = line.strip()[-2:]
     if line.strip() == '}' and token == True:
+      token = False
       for zf in zoomfreqs[md][st]:
         scanv2d.write('    %s\n' % zf)
     scanv2d.write(line)
-
 
   # write station zoomfreqs into a new .v2d file (with scan number in the filename)
   v2d.close()
