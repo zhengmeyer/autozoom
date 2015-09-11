@@ -1,10 +1,26 @@
 Introduction
-==============
+=================
 
 The autozoom program is written in Python. It reads the VEX file, calculate the optimal ZoomFreqs among all stations, and write the calculated ZoomFreqs to the v2d file.
 
 Requirements
-==============
+=================
 
 This program uses the VEX parser within the SFXC software developed at JIVE (http://www.jive.nl/jivewiki/doku.php?id=sfxc). Since the VEX parser doesn't support Python 3 yet, please use Python 2.x.
 
+Assumptions
+=================
+
+The program is developed based on the following assumptions:
+
+1. ALMA uses the normal configuration, i.e. ALMA's channels are overlapped: the band centers are 62.5 * 15/16 = 58.59375 MHz apart, the total frequency coverage is about 1.9 GHz.
+
+2. ALL other VLBI stations have the same frequency coverage 2048 MHz. The bandwidth of all other VLBI stations is 2^N, with a minimum bandwidth of 64 MHz.
+
+How does it work
+=================
+
+To use it:
+$ python autozoom.py vexfile scan name.v2d
+
+The program will generate a name.scan.v2d file, which contains the calculated optimum zoom frequencies for each antenna.

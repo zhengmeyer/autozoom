@@ -33,16 +33,25 @@ def get_freqsetup(freq):
     band_freqs.append(float(ch[1].split(' ')[0]))
   
   f['num_channels'] = numchans
+  f['band_overlap'] = 0.0
 
   if f['side_band'] == 'L':
-    f['min_freq'] = band_freqs[numchans-1] - f['bandwidth']
+    if len(band_freqs) > 1:
+      # sometimes the first band only consists of half bandwidth
+    # therefore, use the second and the third band for band_overlap calculation
+      f['band_overlap'] =  f['bandwidth'] - (band_freqs[1] - band_freqs[2])
+    f['min_freq'] = band_freqs[numchans-1] - f['bandwidth'] + f['band_overlap']
     f['max_freq'] = band_freqs[0]
+
   if f['side_band'] == 'U':
+    if len(band_freqs) > 1:
+      # sometimes the first band only consists of half bandwidth
+      # therefore, use the second and the third band for band_overlap calculation
+      f['band_overlap'] = f['bandwidth'] - (band_freqs[2] - band_freqs[1])
     f['min_freq'] = band_freqs[0]
     f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
 
   f['f_coverage'] = f['max_freq'] - f['min_freq']
-  f['band_overlap'] = f['f_coverage'] - f['bandwidth'] * numchans
   
   return f
 
@@ -59,12 +68,13 @@ def cal_zoomfreqs(v, md):
   zfreqs = freqs
   return zfreqs
 
-def Autozoom(file, md):
+def Autozoom(file, scan):
   zoomfreqs = {}
   fp = open(file, 'r')
   v = vex.parse(fp.read())
   fp.close()
   # calculate zoom frequencies for each station within each mode
+  md = v['SCHED'][scan]['mode']
   zoomfreqs[md] = {}
   zoom = cal_zoomfreqs(v, md)
   for freq in v['MODE'][md].getall('FREQ'):
@@ -72,9 +82,11 @@ def Autozoom(file, md):
       if st in freq:
         zoomfreqs[md][st] = zoom[freq[0]]
 
-  # insert station zoomfreqs into .v2d file
+  #print(zoomfreqs)
+  # write station zoomfreqs into a new .v2d file (with scan number in the filename)
   return
 
+# input parameters: vex.file.name scan
 if __name__=="__main__":
   import sys
   Autozoom(sys.argv[1], sys.argv[2])
