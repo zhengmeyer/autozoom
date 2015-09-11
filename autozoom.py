@@ -32,22 +32,23 @@ def get_freqsetup(freq):
     numchans += 1
     band_freqs.append(float(ch[1].split(' ')[0]))
   
+  f['band_freqs'] = band_freqs
   f['num_channels'] = numchans
   f['band_overlap'] = 0.0
 
   if f['side_band'] == 'L':
     if len(band_freqs) > 1:
       # sometimes the first band only consists of half bandwidth
-      # therefore, use the second and the third band for band_overlap calculation
-      f['band_overlap'] =  f['bandwidth'] - (band_freqs[1] - band_freqs[2])
+      # need to consider it later
+      f['band_overlap'] =  f['bandwidth'] - (band_freqs[0] - band_freqs[1])
     f['min_freq'] = band_freqs[numchans-1] - f['bandwidth'] + f['band_overlap']
     f['max_freq'] = band_freqs[0]
 
   if f['side_band'] == 'U':
     if len(band_freqs) > 1:
       # sometimes the first band only consists of half bandwidth
-      # therefore, use the second and the third band for band_overlap calculation
-      f['band_overlap'] = f['bandwidth'] - (band_freqs[2] - band_freqs[1])
+      # need to consider it later
+      f['band_overlap'] = f['bandwidth'] - (band_freqs[1] - band_freqs[0])
     f['min_freq'] = band_freqs[0]
     f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
 
@@ -56,23 +57,34 @@ def get_freqsetup(freq):
   return f
 
 
-# Case 1:
+# Case 1: zoom band <-> recorded band
 # ALL stations have the same frequency coverage 2048 MHz.
-# Bandwidth is 2^N, with a minimum bandwidth of 64 MHz.
+# Bandwidth is 2^N, with a minimum bandwidth of 32 MHz.
 def allvlbi(freqs):
   z = {}
-  minbw = 2048;
+  refbw = 2048
+  reffreqs = []
+  refnchans = 0
 
   # get the smallest bandwidth of all frequency setup
   # use it as reference for zoom frequency
   for f in freqs.keys():
-    if minbw > int(freqs[f]['bandwidth']):
-      minbw = int(freqs[f]['bandwidth'])
+    if refbw >= int(freqs[f]['bandwidth']):
+      refbw = int(freqs[f]['bandwidth'])
+      reffreqs = freqs[f]['band_freqs']
+      refnchans = freqs[f]['num_channels']
   
+  if not reffreqs or refnchans == 0:
+    raise Exception("No reference frequency setup found!")
+
   for f in freqs.keys():
-    num_zf = int(freqs[f]['bandwidth']) / minbw
-    
-    z[f] = freqs[f]
+    z[f]=[]
+    num_zf = int(freqs[f]['bandwidth']) / refbw
+    if num_zf == 1:
+      z[f] = []
+    else:
+      for ch in range(refnchans):
+        z[f].append("addZoomFreq = freq@%f/bw@%f" % (reffreqs[ch], refbw))
   return z
 
 # Case 2
@@ -95,15 +107,13 @@ def cal_zoomfreqs(v, md):
   # check whether all frequency setup has the same min_freq and max_freq
   # check whether all bandwidth are 2^N
 
-
   # calculate zoom frequencies
   zfreqs = zoom_options[1](freqs)
-  print(zfreqs)
   return zfreqs
 
-def Autozoom(file, scan):
+def Autozoom(vexfile, scan, v2dfile):
   zoomfreqs = {}
-  fp = open(file, 'r')
+  fp = open(vexfile, 'r')
   v = vex.parse(fp.read())
   fp.close()
   # calculate zoom frequencies for each station within each mode
@@ -115,11 +125,34 @@ def Autozoom(file, scan):
       if st in freq:
         zoomfreqs[md][st] = zoom[freq[0]]
 
-  #print(zoomfreqs)
+  #print(zoomfreqs[md])
+
+  # read .v2d file
+  v2d = open(v2dfile, 'r')
+  
+  # construct name for the new v2d file (with scan number in it)
+  name = v2dfile.split('.')[:-1]
+  name.extend([scan, 'v2d'])
+  name = '.'.join(name)
+
+  scanv2d = open(name, 'w')
+  token = False;
+  for line in v2d:
+    if line.strip()[:7] == 'ANTENNA':
+      token = True;
+      st = line.strip()[-2:]
+    if line.strip() == '}' and token == True:
+      for zf in zoomfreqs[md][st]:
+        scanv2d.write('    %s\n' % zf)
+    scanv2d.write(line)
+
+
   # write station zoomfreqs into a new .v2d file (with scan number in the filename)
+  v2d.close()
+  scanv2d.close()
   return
 
 # input parameters: vex.file.name scan
 if __name__=="__main__":
   import sys
-  Autozoom(sys.argv[1], sys.argv[2])
+  Autozoom(sys.argv[1], sys.argv[2], sys.argv[3])
