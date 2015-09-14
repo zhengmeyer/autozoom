@@ -58,7 +58,7 @@ def get_freqsetup(freq):
   return f
 
 # calculate the zoom frequencies of the given mode
-def cal_zoomfreqs(v, md, opts):
+def cal_zoomfreqs(v, md, opts, zoombw):
   freqs = {}
   zfreqs = {}
   
@@ -67,10 +67,16 @@ def cal_zoomfreqs(v, md, opts):
     freqs[f[0]] = get_freqsetup(v['FREQ'][f[0]])
 
   options = zoom_options()
-  zfreqs = options[opts](freqs)
+  if opts == 1:
+    if zoombw != None:
+      raise Exception("Zoom bandwidth cannot be specified for Case 1!!!")
+    zfreqs = options[opts](freqs)
+  else:
+    if zoombw == None:
+      zfreqs = options[opts](freqs, zoombw)
   return zfreqs
 
-def Autozoom(vexfile, scan, v2dfile, opts):
+def Autozoom(vexfile, scan, v2dfile, opts, zoombw):
   zoomfreqs = {}
   fp = open(vexfile, 'r')
   v = vex.parse(fp.read())
@@ -78,7 +84,7 @@ def Autozoom(vexfile, scan, v2dfile, opts):
   # calculate zoom frequencies for each station within each mode
   md = v['SCHED'][scan]['mode']
   zoomfreqs[md] = {}
-  zoom = cal_zoomfreqs(v, md, opts)
+  zoom = cal_zoomfreqs(v, md, opts, zoombw)
   for freq in v['MODE'][md].getall('FREQ'):
     for st in v['STATION']:
       if st in freq:
@@ -123,12 +129,14 @@ if __name__=="__main__":
           ALL stations have the same frequency coverage (max. 2048 MHz).
           Start frequency of all stations are the same. Bandwidth is 2^N.
   Case 2: ALMA <-> 2048 MHz VLBI
-  ALMA uses the normal configuration, i.e. ALMA's channels are overlapped:
-  the band centers are 62.5 * 15/16 = 58.59375 MHz apart.'''
+          ALMA uses the normal configuration, i.e. ALMA's channels are overlapped,
+          the band centers are 62.5 * 15/16 = 58.59375 MHz apart.'''
 
   parser = OptionParser(usage=usage, version="%prog 1.0")
+  parser.add_option("--zoombw", action="store", type="float", dest="zoombw")
   (options, args) = parser.parse_args()
-  if len(args) != 4:
-    parser.print_help()
+  if len(args) == 4 or len(args) == 5:
+    Autozoom(args[0], args[1], args[2], int(args[3]), options.zoombw)
   else:
-    Autozoom(args[0], args[1], args[2], int(args[3]))
+    parser.print_help()
+    

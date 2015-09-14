@@ -16,6 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. #
 #########################################################################
 
+ALMABW = 58.59375
+EPSILON = 0.00001
+
 # check if a number is 2^N
 def is_pow2(num):
   return num > 0 and ((num & (num - 1) == 0))
@@ -57,17 +60,18 @@ def allvlbi(freqs):
 
   for f in freqs.keys():
     z[f] = []
-    num_zf = int(freqs[f]['bandwidth']) / refbw
-    if num_zf == 1:
+    if freqs[f]['bandwidth'] - refbw < EPSILON:
       z[f] = []
     else:
       addzoomfreqs(z[f], refnchans, refbw)
   return z
 
 # Case 2: ALMA <-> 2048 MHz VLBI
-# ALMA uses the normal configuration, i.e. ALMA's channels are overlapped:
+# ALMA uses the normal configuration, i.e. ALMA's channels are overlapped,
 # the band centers are 62.5 * 15/16 = 58.59375 MHz apart.
-def almavlbi(freqs):
+# Use ALMA as reference station, center-align ALMA bands.
+# User can define zoom bandwidth, default zoom bandwidth is 58.59375 MHz.
+def almavlbi(freqs, zoombw):
   z = {}
   reffreqs = []
   refnchans = 0
@@ -75,10 +79,15 @@ def almavlbi(freqs):
 
   for f in freqs.keys():
     z[f] = []
-    addzoomfreqs(z[f], refnchans, refbw)
+    if freqs[f]['bandwidth'] - refbw < EPSILON:
+      z[f] = []
+    else:
+      addzoomfreqs(z[f], refnchans, refbw)
   return z
 
-# Add more cases here
+# To add new cases, comment out the following template,
+# and add case-specific calculations
+
 #def newcase(freqs):
 #  z = {}
 #  reffreqs = []
@@ -90,7 +99,10 @@ def almavlbi(freqs):
 #    z[f] = []
 #    # add contents here
 #
-#    addzoomfreqs(z, f, refnchans, refbw)
+#    if freqs[f]['bandwidth'] - refbw < EPSILON:
+#      z[f] = []
+#    else:
+#      addzoomfreqs(z[f], refnchans, refbw)
 #  return z
 
 # Add newcase into zoom_options as hown below
