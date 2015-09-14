@@ -52,13 +52,13 @@ def get_freqsetup(freq):
       f['band_overlap'] = f['bandwidth'] - (band_freqs[1] - band_freqs[0])
     f['min_freq'] = band_freqs[0]
     f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
-
+    print f['min_freq'], f['max_freq']
   f['f_coverage'] = f['max_freq'] - f['min_freq']
   
   return f
 
 # calculate the zoom frequencies of the given mode
-def cal_zoomfreqs(v, md):
+def cal_zoomfreqs(v, md, opts):
   freqs = {}
   zfreqs = {}
   
@@ -66,18 +66,11 @@ def cal_zoomfreqs(v, md):
     # get frequency information from each frequency setup
     freqs[f[0]] = get_freqsetup(v['FREQ'][f[0]])
 
-  # !!!!!!!!!!!!!!!!!
-  # check whether all frequency setup has the same min_freq and max_freq
-  # check whether all bandwidth are 2^N
-
-  # calculate zoom frequencies
-  # !!!!!!!!!!!!!!!!!!!!!!!!!!!
-  # always select one at the moment
   options = zoom_options()
-  zfreqs = options[2](freqs)
+  zfreqs = options[opts](freqs)
   return zfreqs
 
-def Autozoom(vexfile, scan, v2dfile):
+def Autozoom(vexfile, scan, v2dfile, opts):
   zoomfreqs = {}
   fp = open(vexfile, 'r')
   v = vex.parse(fp.read())
@@ -85,7 +78,7 @@ def Autozoom(vexfile, scan, v2dfile):
   # calculate zoom frequencies for each station within each mode
   md = v['SCHED'][scan]['mode']
   zoomfreqs[md] = {}
-  zoom = cal_zoomfreqs(v, md)
+  zoom = cal_zoomfreqs(v, md, opts)
   for freq in v['MODE'][md].getall('FREQ'):
     for st in v['STATION']:
       if st in freq:
@@ -118,7 +111,24 @@ def Autozoom(vexfile, scan, v2dfile):
   scanv2d.close()
   return
 
-# input parameters: vex.file.name scan
+# Usage:
+#   python autozoom.py vex.file.name scan name.v2d case
 if __name__=="__main__":
   import sys
-  Autozoom(sys.argv[1], sys.argv[2], sys.argv[3])
+  from optparse import OptionParser
+  usage = '''usage: %prog [options] vexfile scanID v2dfile caseID
+  e.g. python2.7 autozoom.py autozoom.vex.obs 075-0558 autozoom.7000.v2d 1
+
+  Case 1: zoom band <-> recorded band
+          ALL stations have the same frequency coverage (max. 2048 MHz).
+          Start frequency of all stations are the same. Bandwidth is 2^N.
+  Case 2: ALMA <-> 2048 MHz VLBI
+  ALMA uses the normal configuration, i.e. ALMA's channels are overlapped:
+  the band centers are 62.5 * 15/16 = 58.59375 MHz apart.'''
+
+  parser = OptionParser(usage=usage, version="%prog 1.0")
+  (options, args) = parser.parse_args()
+  if len(args) != 4:
+    parser.print_help()
+  else:
+    Autozoom(args[0], args[1], args[2], int(args[3]))
