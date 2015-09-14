@@ -16,17 +16,23 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. #
 #########################################################################
 
+# check if a number is 2^N
 def is_pow2(num):
   return num > 0 and ((num & (num - 1) == 0))
+
+# add zoom freqencies to each antenna
+def addzoomfreqs(zf, refnchans, refbw):
+  for ch in range(refnchans):
+        zf.append("addZoomFreq = freq@%f/bw@%f" % (reffreqs[ch], refbw))
 
 # Case 1: zoom band <-> recorded band
 # ALL stations have the same frequency coverage (max. 2048 MHz).
 # Start and end frequencies of all stations are the same. Bandwidth is 2^N.
 def allvlbi(freqs):
   z = {}
-  refbw = 2048
   reffreqs = []
   refnchans = 0
+  refbw = 2048.0
   pow2 = True
   minfreqs = set()
   maxfreqs = set()
@@ -37,7 +43,7 @@ def allvlbi(freqs):
     pow2 &= is_pow2(int(freqs[f]['bandwidth']))
     minfreqs.add(freqs[f]['min_freq'])
     maxfreqs.add(freqs[f]['max_freq'])
-    if refbw >= int(freqs[f]['bandwidth']):
+    if int(refbw) >= int(freqs[f]['bandwidth']):
       refbw = int(freqs[f]['bandwidth'])
       reffreqs = freqs[f]['band_freqs']
       refnchans = freqs[f]['num_channels']
@@ -50,13 +56,12 @@ def allvlbi(freqs):
     raise Exception("No reference frequency setup found!!!")
 
   for f in freqs.keys():
-    z[f]=[]
+    z[f] = []
     num_zf = int(freqs[f]['bandwidth']) / refbw
     if num_zf == 1:
       z[f] = []
     else:
-      for ch in range(refnchans):
-        z[f].append("addZoomFreq = freq@%f/bw@%f" % (reffreqs[ch], refbw))
+      addzoomfreqs(z[f], refnchans, refbw)
   return z
 
 # Case 2: ALMA <-> 2048 MHz VLBI
@@ -64,12 +69,28 @@ def allvlbi(freqs):
 # the band centers are 62.5 * 15/16 = 58.59375 MHz apart.
 def almavlbi(freqs):
   z = {}
+  reffreqs = []
+  refnchans = 0
+  refbw = 2048.0
+
+  for f in freqs.keys():
+    z[f] = []
+    addzoomfreqs(z[f], refnchans, refbw)
   return z
 
 # Add more cases here
 #def newcase(freqs):
 #  z = {}
+#  reffreqs = []
+#  refnchans = 0
+#  refbw = 2048.0
 #  # add contents here
+#
+#  for f in freqs.keys():
+#    z[f] = []
+#    # add contents here
+#
+#    addzoomfreqs(z, f, refnchans, refbw)
 #  return z
 
 # Add newcase into zoom_options as hown below

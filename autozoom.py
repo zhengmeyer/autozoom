@@ -52,7 +52,7 @@ def get_freqsetup(freq):
       f['band_overlap'] = f['bandwidth'] - (band_freqs[1] - band_freqs[0])
     f['min_freq'] = band_freqs[0]
     f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
-    print f['min_freq'], f['max_freq']
+    #print f['min_freq'], f['max_freq']
   f['f_coverage'] = f['max_freq'] - f['min_freq']
   
   return f
