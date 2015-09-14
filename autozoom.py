@@ -17,6 +17,7 @@
 #########################################################################
 
 import vex
+from cases import zoom_options
 
 # Retrieve information from frequency setup
 # Keys: min_freq, band_overlap, max_freq, side_band, f_coverage,
@@ -56,45 +57,6 @@ def get_freqsetup(freq):
   
   return f
 
-
-# Case 1: zoom band <-> recorded band
-# ALL stations have the same frequency coverage 2048 MHz.
-# Bandwidth is 2^N, with a minimum bandwidth of 32 MHz.
-def allvlbi(freqs):
-  z = {}
-  refbw = 2048
-  reffreqs = []
-  refnchans = 0
-
-  # get the smallest bandwidth of all frequency setup
-  # use it as reference for zoom frequency
-  for f in freqs.keys():
-    if refbw >= int(freqs[f]['bandwidth']):
-      refbw = int(freqs[f]['bandwidth'])
-      reffreqs = freqs[f]['band_freqs']
-      refnchans = freqs[f]['num_channels']
-  
-  if not reffreqs or refnchans == 0:
-    raise Exception("No reference frequency setup found!")
-
-  for f in freqs.keys():
-    z[f]=[]
-    num_zf = int(freqs[f]['bandwidth']) / refbw
-    if num_zf == 1:
-      z[f] = []
-    else:
-      for ch in range(refnchans):
-        z[f].append("addZoomFreq = freq@%f/bw@%f" % (reffreqs[ch], refbw))
-  return z
-
-# Case 2
-def almavlbi():
-  return
-
-
-zoom_options = {1 : allvlbi,
-                2 : almavlbi}
-
 # calculate the zoom frequencies of the given mode
 def cal_zoomfreqs(v, md):
   freqs = {}
@@ -111,7 +73,8 @@ def cal_zoomfreqs(v, md):
   # calculate zoom frequencies
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!
   # always select one at the moment
-  zfreqs = zoom_options[1](freqs)
+  options = zoom_options()
+  zfreqs = options[2](freqs)
   return zfreqs
 
 def Autozoom(vexfile, scan, v2dfile):
@@ -147,7 +110,7 @@ def Autozoom(vexfile, scan, v2dfile):
     if line.strip() == '}' and token == True:
       token = False
       for zf in zoomfreqs[md][st]:
-        scanv2d.write('    %s\n' % zf)
+        scanv2d.write('\t%s\n' % zf)
     scanv2d.write(line)
 
   # write station zoomfreqs into a new .v2d file (with scan number in the filename)
