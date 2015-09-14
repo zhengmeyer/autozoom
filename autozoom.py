@@ -42,7 +42,7 @@ def get_freqsetup(freq):
       # sometimes the first band only consists of half bandwidth
       # need to consider it later
       f['band_overlap'] =  f['bandwidth'] - (band_freqs[0] - band_freqs[1])
-    f['min_freq'] = band_freqs[numchans-1] - f['bandwidth'] + f['band_overlap']
+    f['min_freq'] = band_freqs[numchans-1] - f['bandwidth']
     f['max_freq'] = band_freqs[0]
 
   if f['side_band'] == 'U':
@@ -52,7 +52,7 @@ def get_freqsetup(freq):
       f['band_overlap'] = f['bandwidth'] - (band_freqs[1] - band_freqs[0])
     f['min_freq'] = band_freqs[0]
     f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
-    #print f['min_freq'], f['max_freq']
+
   f['f_coverage'] = f['max_freq'] - f['min_freq']
   
   return f
@@ -72,8 +72,7 @@ def cal_zoomfreqs(v, md, opts, zoombw):
       raise Exception("Zoom bandwidth cannot be specified for Case 1!!!")
     zfreqs = options[opts](freqs)
   else:
-    if zoombw == None:
-      zfreqs = options[opts](freqs, zoombw)
+    zfreqs = options[opts](freqs, zoombw)
   return zfreqs
 
 def Autozoom(vexfile, scan, v2dfile, opts, zoombw):
@@ -89,8 +88,6 @@ def Autozoom(vexfile, scan, v2dfile, opts, zoombw):
     for st in v['STATION']:
       if st in freq:
         zoomfreqs[md][st] = zoom[freq[0]]
-
-  #print(zoomfreqs[md])
 
   # read .v2d file
   v2d = open(v2dfile, 'r')
@@ -135,8 +132,10 @@ if __name__=="__main__":
   parser = OptionParser(usage=usage, version="%prog 1.0")
   parser.add_option("--zoombw", action="store", type="float", dest="zoombw")
   (options, args) = parser.parse_args()
-  if len(args) == 4 or len(args) == 5:
-    Autozoom(args[0], args[1], args[2], int(args[3]), options.zoombw)
-  else:
+
+  if len(args) < 4:
     parser.print_help()
+  else:
+    Autozoom(args[0], args[1], args[2], int(args[3]), options.zoombw)
+    
     
