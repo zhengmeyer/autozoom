@@ -28,7 +28,7 @@ The program is developed based on the following assumptions:
 
 1. ALMA uses the normal configuration, i.e. ALMA's channels are overlapped: the band centers are 62.5 * 15/16 = 58.59375 MHz apart. 
 
-2. ALL other VLBI stations have the same frequency coverage 2048 MHz. The bandwidth of all VLBI stations (except ALMA) is 2^N.
+2. ALL other VLBI stations have the same frequency coverage (max. 2048 MHz). The bandwidth of all VLBI stations (except ALMA) is 2^N.
 
 How does it work
 =================
