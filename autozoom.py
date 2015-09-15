@@ -17,7 +17,7 @@
 #########################################################################
 
 import vex
-from cases import zoom_options
+from cases import Zoom
 
 # Retrieve information from frequency setup
 # Keys: min_freq, band_overlap, max_freq, side_band, f_coverage,
@@ -66,13 +66,10 @@ def cal_zoomfreqs(v, md, opts, zoombw):
     # get frequency information from each frequency setup
     freqs[f[0]] = get_freqsetup(v['FREQ'][f[0]])
 
-  options = zoom_options()
-  if opts == 1:
-    if zoombw != None:
-      raise Exception("Zoom bandwidth cannot be specified for Case 1!!!")
-    zfreqs = options[opts](freqs)
-  else:
-    zfreqs = options[opts](freqs, zoombw)
+  zoom = Zoom()
+  zoom.setreference(freqs, opts, zoombw)
+
+  zfreqs = zoom.addzoomfreqs(freqs)
   return zfreqs
 
 def Autozoom(vexfile, scan, v2dfile, opts, zoombw):
@@ -97,7 +94,7 @@ def Autozoom(vexfile, scan, v2dfile, opts, zoombw):
   name.extend([scan, 'v2d'])
   name = '.'.join(name)
 
-  scanv2d = open(name, 'w')
+  scanv2d = open(name, 'wb')
   token = False;
   for line in v2d:
     if line.strip()[:7] == 'ANTENNA':

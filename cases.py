@@ -16,40 +16,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. #
 #########################################################################
 
-ALMABW = 58.59375
+ALMABW = 62.5
+ALMAZOOMBW = 58.59375
 EPSILON = 0.00001
 MAXBW = 2048.0
-
-class Zoom:
-  def __init__(self):
-    self.z = {}
-    self.reffreqs = []
-    self.refnchans = 0
-    self.refbw = 0.0
-
-  def addzoomfreqs(self, freqs):
-    if not self.reffreqs or self.refnchans == 0:
-      raise Exception("No reference frequency setup found!!!")
-    for f in freqs.keys():
-      self.z[f] = []
-      # if bandwidth of the frequency setup is not the same as reference bandwidth
-      if freqs[f]['bandwidth'] - self.refbw >= EPSILON:
-        for ch in range(self.refnchans):
-          self.z[f].append("addZoomFreq = freq@%f/bw@%f" % (self.reffreqs[ch], self.refbw))
-    return self.z
 
 # check if a number is 2^N
 def is_pow2(num):
   return num > 0 and ((num & (num - 1) == 0))
-  
 
 # Case 1: zoom band <-> recorded band
 # ALL stations have the same frequency coverage (max. 2048 MHz).
 # Start and end frequencies of all stations are the same. Bandwidth is 2^N.
-def allvlbi(freqs):
-  zoom = Zoom()
-
+def allvlbi(zoom, freqs):
   # add case-specific code here
+  # zoom.refbw, zoom.reffreqs, and zoom.refnchans should be set
   zoom.refbw = MAXBW
   pow2 = True
   minfreqs = set()
@@ -70,32 +51,35 @@ def allvlbi(freqs):
   if len(minfreqs) != 1 or len(maxfreqs) != 1:
     raise Exception("Start frequency or end frequency of antennas are not the same!!!")
 
-  return zoom.addzoomfreqs(freqs)
-
 # Case 2: ALMA <-> 2048 MHz VLBI
 # ALMA uses the normal configuration, i.e. ALMA's channels are overlapped,
 # the band centers are 62.5 * 15/16 = 58.59375 MHz apart.
-# Use ALMA as reference station, center-align ALMA bands.
-# User can define zoom bandwidth, default zoom bandwidth is ALMABW=58.59375 MHz.
-def almavlbi(freqs, zoombw):
-  zoom = Zoom()
-
+# Use ALMA frequency setup as reference, center-align ALMA bands.
+# User can define zoom bandwidth, default zoom bandwidth is ALMAZOOMBW=58.59375 MHz.
+def almavlbi(zoom, freqs, zoombw):
   # add case-specific code here
+  # zoom.refbw, zoom.reffreqs, and zoom.refnchans should be set
   if zoombw == None:
-    zoombw = ALMABW
+    zoombw = ALMAZOOMBW
   zoom.refbw = zoombw
-  
-  return zoom.addzoomfreqs(freqs)
+
+  for f in freqs.keys():
+    if abs(freqs[f]['bandwidth'] - ALMABW) < EPSILON:
+      zoom.refnchans = freqs[f]['num_channels']
+      if freqs[f]['side_band'] == 'U':
+        for freq in freqs[f]['band_freqs']:
+          zoom.reffreqs.append(freq + ALMABW/2 - zoombw/2)
+      else:
+        for freq in freqs[f]['band_freqs']:
+          zoom.reffreqs.append(freq - ALMABW + ALMABW/2 - zoombw/2)
 
 # To add new cases, comment out the following template,
 # and add case-specific code
 
 #def newcase(freqs):
-#  zoom = Zoom()
-#
 #  # add case-specific code here
-#
-#  return zoom.addzoomfreqs(freqs)
+#  # zoom.refbw, zoom.reffreqs, and zoom.refnchans should be set
+
 
 # Add newcase into zoom_options as hown below
 def zoom_options():
@@ -105,3 +89,31 @@ def zoom_options():
                  #3 : newcase
                   }
   return zoom_options
+
+class Zoom:
+  def __init__(self):
+    self.z = {}
+    self.reffreqs = []
+    self.refnchans = 0
+    self.refbw = 0.0
+
+  def addzoomfreqs(self, freqs):
+    if not self.reffreqs or self.refnchans == 0:
+      raise Exception("No reference frequency setup found!!!")
+    for f in freqs.keys():
+      self.z[f] = []
+      # if bandwidth of the frequency setup is not the same as reference bandwidth
+      if abs(freqs[f]['bandwidth'] - self.refbw) >= EPSILON:
+        for ch in range(self.refnchans):
+          self.z[f].append("addZoomFreq = freq@%f/bw@%f" % (self.reffreqs[ch], self.refbw))
+    return self.z
+
+  def setreference(self, freqs, opts, zoombw):
+    options = zoom_options()
+    if opts == 1:
+      if zoombw != None:
+        raise Exception("Zoom bandwidth cannot be specified for Case 1!!!")
+      options[opts](self, freqs)
+    else:
+      options[opts](self, freqs, zoombw)
+  
