@@ -127,7 +127,8 @@ if __name__=="__main__":
           the band centers are 62.5 * 15/16 = 58.59375 MHz apart.'''
 
   parser = OptionParser(usage=usage, version="%prog 1.0")
-  parser.add_option("--zoombw", action="store", type="float", dest="zoombw")
+  parser.add_option("--zoombw", action="store", type="float", dest="zoombw",
+                    help="Zoom frequency for ALMA, e.g. --zoombw=51.2 (default zoom frequency is 58.59375 MHz)")
   (options, args) = parser.parse_args()
 
   if len(args) < 4:
