@@ -73,6 +73,30 @@ def almavlbi(zoom, freqs, zoombw):
         for freq in freqs[f]['band_freqs']:
           zoom.reffreqs.append(freq - ALMABW + ALMABW/2 - zoombw/2)
 
+# Case 3: ALMA <-> VLBA DDC
+# ALMA uses the normal configuration, i.e. ALMA's channels are overlapped,
+# the band centers are 62.5 * 15/16 = 58.59375 MHz apart.
+# Use ALMA frequency setup as reference, center-align ALMA bands.
+# User can define zoom bandwidth, default zoom bandwidth is ALMAZOOMBW=58.59375 MHz.
+# In case ALMA frequency coverage is larger than VLBA DDC,
+# only select the ALMA bands within the VLBA DDC frequency coverage
+def almavlbaddc(zoom, freqs, zoombw):
+  # add case-specific code here
+  # zoom.refbw, zoom.reffreqs, and zoom.refnchans should be set
+  if zoombw == None:
+    zoombw = ALMAZOOMBW
+  zoom.refbw = zoombw
+
+  for f in freqs.keys():
+    if abs(freqs[f]['bandwidth'] - ALMABW) < EPSILON:
+      zoom.refnchans = freqs[f]['num_channels']
+      if freqs[f]['side_band'] == 'U':
+        for freq in freqs[f]['band_freqs']:
+          zoom.reffreqs.append(freq + ALMABW/2 - zoombw/2)
+      else:
+        for freq in freqs[f]['band_freqs']:
+          zoom.reffreqs.append(freq - ALMABW + ALMABW/2 - zoombw/2)
+
 # To add new cases, comment out the following template,
 # and add case-specific code
 
@@ -85,8 +109,9 @@ def almavlbi(zoom, freqs, zoombw):
 def zoom_options():
 
   zoom_options = {1 : allvlbi,
-                  2 : almavlbi
-                 #3 : newcase
+                  2 : almavlbi,
+                  3 : almavlbaddc
+                 #N : newcase
                   }
   return zoom_options
 
