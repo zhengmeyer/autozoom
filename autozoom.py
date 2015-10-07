@@ -20,7 +20,7 @@ import vex
 from cases import Zoom
 
 # Retrieve information from frequency setup
-# Keys: min_freq, band_overlap, max_freq, side_band, f_coverage,
+# Keys: min_freq, max_freq, side_band, f_coverage,
 # bandwidth, num_channels, sample_rate
 def get_freqsetup(freq):
   f = {}
@@ -35,21 +35,12 @@ def get_freqsetup(freq):
   
   f['band_freqs'] = band_freqs
   f['num_channels'] = numchans
-  f['band_overlap'] = 0.0
 
   if f['side_band'] == 'L':
-    if len(band_freqs) > 1:
-      # sometimes the first band only consists of half bandwidth
-      # need to consider it later
-      f['band_overlap'] =  f['bandwidth'] - (band_freqs[0] - band_freqs[1])
     f['min_freq'] = band_freqs[numchans-1] - f['bandwidth']
     f['max_freq'] = band_freqs[0]
 
   if f['side_band'] == 'U':
-    if len(band_freqs) > 1:
-      # sometimes the first band only consists of half bandwidth
-      # need to consider it later
-      f['band_overlap'] = f['bandwidth'] - (band_freqs[1] - band_freqs[0])
     f['min_freq'] = band_freqs[0]
     f['max_freq'] = band_freqs[numchans-1] + f['bandwidth']
 

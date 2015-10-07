@@ -105,7 +105,7 @@ class Zoom:
       # if bandwidth of the frequency setup is not the same as reference bandwidth
       if abs(freqs[f]['bandwidth'] - self.refbw) >= EPSILON:
         for ch in range(self.refnchans):
-          self.z[f].append("addZoomFreq = freq@%f/bw@%f" % (self.reffreqs[ch], self.refbw))
+          self.z[f].append("addZoomFreq = freq@%f/bw@%f/noparent@true" % (self.reffreqs[ch], self.refbw))
     return self.z
 
   def setreference(self, freqs, opts, zoombw):
